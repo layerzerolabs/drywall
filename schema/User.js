@@ -5,10 +5,10 @@ exports = module.exports = function(app, mongoose) {
     username: { type: String, unique: true },
     password: String,
     email: { type: String, unique: true },
-    roles: {
-      admin: { type: mongoose.Schema.Types.ObjectId, ref: 'Admin' },
-      account: { type: mongoose.Schema.Types.ObjectId, ref: 'Account' }
-    },
+    roles: [{
+        role: String,
+        status: Boolean
+    }],
     isActive: String,
     timeCreated: { type: Date, default: Date.now },
     resetPasswordToken: String,
@@ -21,11 +21,11 @@ exports = module.exports = function(app, mongoose) {
     search: [String]
   });
   userSchema.methods.canPlayRoleOf = function(role) {
-    if (role === "admin" && this.roles.admin) {
+    if (role === 'admin' && this.roles.admin) {
       return true;
     }
 
-    if (role === "account" && this.roles.account) {
+    if (role === 'account' && this.roles.account) {
       return true;
     }
 
