@@ -12,6 +12,7 @@ block body
       div#header
       div#identity
       div#roles
+      div#groups
       div#password
       div#delete
 
@@ -52,44 +53,45 @@ block body
       div.form-group
         button.btn.btn-primary.btn-update(type='button') Update
 
-  script(type='text/template', id='tmpl-roles')
+  script(type='text/template', id='tmpl-groups')
     fieldset
-      legend Roles
+      legend Groups
       div.alerts
         |<% _.each(errors, function(err) { %>
         div.alert.alert-danger.alert-dismissable
           button.close(type='button', data-dismiss='alert') &times;
           |<%- err %>
         |<% }); %>
-      div.form-group(class!='<%- errfor.newAdminId ? "has-error" : "" %>')
-        label Admin:
-        div.controls
-          div.input-group
-            |<% if (roles && roles.admin) { %>
-            input.form-control(disabled=true, value!='<%= roles.admin.name.full %>')
-            div.input-group-btn
-              button.btn.btn-warning.btn-admin-unlink(type='button') Unlink
-              button.btn.btn-default.btn-admin-open(type='button') Open
-            |<% } else { %>
-            input.form-control(name='newAdminId', type='text', placeholder='enter admin id')
-            div.input-group-btn
-              button.btn.btn-success.btn-admin-link(type='button') Link
-            |<% } %>
-          span.help-block <%- errfor.newAdminId %>
-      div.form-group(class!='<%- errfor.newAccountId ? "has-error" : "" %>')
-        label Account:
+        |<% if (success) { %>
+        div.alert.alert-info.alert-dismissable
+          button.close(type='button', data-dismiss='alert') &times;
+          | Changes have been saved.
+        |<% } %>
+      div.form-group(class!='<%- errfor.newMembership ? "has-error" : "" %>')
+        label Add Membership:
         div.input-group
-          |<% if (roles && roles.account) { %>
-          input.form-control(disabled=true, value!='<%= roles.account.name.full %>')
+          select.form-control(name='newMembership')
+            for group in data.adminGroups
+              option(value='#{group._id}') #{group.name}
           div.input-group-btn
-            button.btn.btn-warning.btn-account-unlink(type='button') Unlink
-            button.btn.btn-default.btn-account-open(type='button') Open
-          |<% } else { %>
-          input.form-control(name='newAccountId', type='text', placeholder='enter account id')
-          div.input-group-btn
-            button.btn.btn-success.btn-account-link(type='button') Link
+            button.btn.btn-success.btn-add(type='button') Add
+        span.help-block <%- errfor.newUsername %>
+      div.form-group(class!='<%- errfor.memberships ? "has-error" : "" %>')
+        label Memberships:
+        div.groups
+          |<% _.each(groups, function(group) { %>
+          div.input-group
+            input.form-control(disabled=true, value!='<%= group.name %>')
+            div.input-group-btn
+              button.btn.btn-danger.btn-delete(type='button')
+                i.fa.fa-trash-o.fa-inverse
+          |<% }); %>
+          |<% if (groups.length == 0) { %>
+          span.badge no memberships defined
           |<% } %>
-        span.help-block <%- errfor.newAccountId %>
+          span.help-block <%- errfor.memberships %>
+      div.form-group
+        button.btn.btn-primary.btn-save(type='button') Save Groups
 
   script(type='text/template', id='tmpl-password')
     fieldset

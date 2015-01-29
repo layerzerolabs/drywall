@@ -61,7 +61,7 @@ exports = module.exports = function(app, passport) {
     passport.use(new GitHubStrategy({
         clientID: app.config.oauth.github.key,
         clientSecret: app.config.oauth.github.secret,
-        customHeaders: { "User-Agent": app.config.projectName }
+        customHeaders: { 'User-Agent': app.config.projectName }
       },
       function(accessToken, refreshToken, profile, done) {
         done(null, false, {
@@ -123,15 +123,6 @@ exports = module.exports = function(app, passport) {
   });
 
   passport.deserializeUser(function(id, done) {
-    app.db.models.User.findOne({ _id: id }).populate('roles.admin').populate('roles.account').exec(function(err, user) {
-      if (user && user.roles && user.roles.admin) {
-        user.roles.admin.populate("groups", function(err, admin) {
-          done(err, user);
-        });
-      }
-      else {
-        done(err, user);
-      }
-    });
+    app.db.models.User.findOne({ _id: id }).populate('groups').exec(done);
   });
 };

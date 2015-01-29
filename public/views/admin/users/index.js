@@ -1,4 +1,4 @@
-/* global app:true */
+/* global app:true, Backbone, _, $, location, alert, document */
 
 (function() {
   'use strict';

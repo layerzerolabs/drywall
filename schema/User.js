@@ -1,15 +1,23 @@
 'use strict';
 
+var _ = require('underscore');
+
 exports = module.exports = function(app, mongoose) {
   var userSchema = new mongoose.Schema({
     username: { type: String, unique: true },
     password: String,
     email: { type: String, unique: true },
-    roles: [{
-        role: String,
-        status: Boolean
-    }],
+    roles: [String],
     isActive: String,
+    isVerified: { type: String, default: '' },
+    verificationToken: { type: String, default: '' },
+    name: {
+      full: { type: String, default: '' },
+      first: { type: String, default: '' },
+      middle: { type: String, default: '' },
+      last: { type: String, default: '' },
+    },
+    groups: [{ type: String, ref: 'AdminGroup' }],
     timeCreated: { type: Date, default: Date.now },
     resetPasswordToken: String,
     resetPasswordExpires: Date,
@@ -20,12 +28,37 @@ exports = module.exports = function(app, mongoose) {
     tumblr: {},
     search: [String]
   });
+
+  userSchema.methods.hasPermissionTo = function(something) {
+    //check group permissions
+    var groupHasPermission = false;
+    for (var i = 0 ; i < this.groups.length ; i++) {
+      for (var j = 0 ; j < this.groups[i].permissions.length ; j++) {
+        if (this.groups[i].permissions[j].name === something) {
+          if (this.groups[i].permissions[j].permit) {
+            groupHasPermission = true;
+          }
+        }
+      }
+    }
+    return groupHasPermission;
+  };
+  
+  userSchema.methods.isMemberOf = function(group) {
+    for (var i = 0 ; i < this.groups.length ; i++) {
+      if (this.groups[i]._id === group) {
+        return true;
+      }
+    }
+
+    return false;
+  };
   userSchema.methods.canPlayRoleOf = function(role) {
-    if (role === 'admin' && this.roles.admin) {
+    if (role === 'admin' && _.contains(this.roles, 'admin')) {
       return true;
     }
 
-    if (role === 'account' && this.roles.account) {
+    if (role === 'account' && _.contains(this.roles, 'account')) {
       return true;
     }
 

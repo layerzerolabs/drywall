@@ -1,3 +1,5 @@
+/* global escape */
+
 'use strict';
 
 exports.find = function(req, res, next){
@@ -21,7 +23,6 @@ exports.find = function(req, res, next){
     if (err) {
       return next(err);
     }
-
     if (req.xhr) {
       res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
       results.filters = req.query;
@@ -49,11 +50,11 @@ exports.read = function(req, res, next){
   });
 };
 
-exports.create = function(req, res, next){
+exports.create = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
+    if (!req.user.isMemberOf('root')) {
       workflow.outcome.errors.push('You may not create admin groups.');
       return workflow.emit('response');
     }
@@ -100,11 +101,11 @@ exports.create = function(req, res, next){
   workflow.emit('validate');
 };
 
-exports.update = function(req, res, next){
+exports.update = function(req, res) {
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
+    if (!req.user.isMemberOf('root')) {
       workflow.outcome.errors.push('You may not update admin groups.');
       return workflow.emit('response');
     }
@@ -121,13 +122,13 @@ exports.update = function(req, res, next){
     var fieldsToSet = {
       name: req.body.name
     };
-
     req.app.db.models.AdminGroup.findByIdAndUpdate(req.params.id, fieldsToSet, function(err, adminGroup) {
       if (err) {
         return workflow.emit('exception', err);
       }
 
       workflow.outcome.adminGroup = adminGroup;
+      console.log(workflow.outcome);
       return workflow.emit('response');
     });
   });
@@ -135,11 +136,11 @@ exports.update = function(req, res, next){
   workflow.emit('validate');
 };
 
-exports.permissions = function(req, res, next){
+exports.permissions = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
+    if (!req.user.isMemberOf('root')) {
       workflow.outcome.errors.push('You may not change the permissions of admin groups.');
       return workflow.emit('response');
     }
@@ -170,11 +171,11 @@ exports.permissions = function(req, res, next){
   workflow.emit('validate');
 };
 
-exports.delete = function(req, res, next){
+exports.delete = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
+    if (!req.user.isMemberOf('root')) {
       workflow.outcome.errors.push('You may not delete admin groups.');
       return workflow.emit('response');
     }
@@ -182,8 +183,8 @@ exports.delete = function(req, res, next){
     workflow.emit('deleteAdminGroup');
   });
 
-  workflow.on('deleteAdminGroup', function(err) {
-    req.app.db.models.AdminGroup.findByIdAndRemove(req.params.id, function(err, adminGroup) {
+  workflow.on('deleteAdminGroup', function() {
+    req.app.db.models.AdminGroup.findByIdAndRemove(req.params.id, function(err) {
       if (err) {
         return workflow.emit('exception', err);
       }

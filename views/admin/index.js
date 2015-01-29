@@ -2,10 +2,10 @@
 
 exports.init = function(req, res, next){
   var sigma = {};
-  var collections = ['User', 'Account', 'Admin', 'AdminGroup', 'Category', 'Status'];
+  var collections = ['User', 'AdminGroup', 'Category', 'Status'];
   var queries = [];
 
-  collections.forEach(function(el, i, arr) {
+  collections.forEach(function(el) {
     queries.push(function(done) {
       req.app.db.models[el].count({}, function(err, count) {
         if (err) {
@@ -18,7 +18,7 @@ exports.init = function(req, res, next){
     });
   });
 
-  var asyncFinally = function(err, results) {
+  var asyncFinally = function(err) {
     if (err) {
       return next(err);
     }

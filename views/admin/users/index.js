@@ -1,3 +1,5 @@
+/* global escape */
+
 'use strict';
 
 exports.find = function(req, res, next){
@@ -35,7 +37,7 @@ exports.find = function(req, res, next){
     }
 
     if (req.xhr) {
-      res.header("Cache-Control", "no-cache, no-store, must-revalidate");
+      res.header('Cache-Control', 'no-cache, no-store, must-revalidate');
       results.filters = req.query;
       res.send(results);
     }
@@ -46,22 +48,47 @@ exports.find = function(req, res, next){
   });
 };
 
-exports.read = function(req, res, next){
-  req.app.db.models.User.findById(req.params.id).populate('roles.admin', 'name.full').populate('roles.account', 'name.full').exec(function(err, user) {
-    if (err) {
-      return next(err);
-    }
+exports.read = function(req, res) {
+  var outcome = {};
+  var getAdminGroups = function(callback) {
+    req.app.db.models.AdminGroup.find({}, 'name').sort('name').exec(function(err, adminGroups) {
+      if (err) {
+        return callback(err, null);
+      }
 
+      outcome.adminGroups = adminGroups;
+      return callback(null, 'done');
+    });
+  };
+
+  var getRecord = function(callback) {
+    req.app.db.models.User.findById(req.params.id).populate('groups', 'name').exec(function(err, record) {
+      if (err) {
+        return callback(err, null);
+      }
+
+      outcome.record = record;
+      return callback(null, 'done');
+    });
+  };
+
+  var asyncFinally = function() {
     if (req.xhr) {
-      res.send(user);
+      res.send(outcome.record);
     }
     else {
-      res.render('admin/users/details', { data: { record: escape(JSON.stringify(user)) } });
+      res.render('admin/users/details', { 
+        data: { 
+          record: escape(JSON.stringify(outcome.record)),
+          adminGroups: outcome.adminGroups
+        } 
+      });
     }
-  });
+  };
+  require('async').parallel([getAdminGroups, getRecord], asyncFinally);
 };
 
-exports.create = function(req, res, next){
+exports.create = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
@@ -113,7 +140,7 @@ exports.create = function(req, res, next){
   workflow.emit('validate');
 };
 
-exports.update = function(req, res, next){
+exports.update = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
@@ -183,72 +210,55 @@ exports.update = function(req, res, next){
       ]
     };
 
-    req.app.db.models.User.findByIdAndUpdate(req.params.id, fieldsToSet, function(err, user) {
+    req.app.db.models.User.findByIdAndUpdate(req.params.id, fieldsToSet, function(err) {
       if (err) {
         return workflow.emit('exception', err);
       }
-
-      workflow.emit('patchAdmin', user);
+      workflow.emit('response');
     });
   });
+};
+exports.groups = function(req, res){
+  var workflow = req.app.utility.workflow(req, res);
 
-  workflow.on('patchAdmin', function(user) {
-    if (user.roles.admin) {
-      var fieldsToSet = {
-        user: {
-          id: req.params.id,
-          name: user.username
-        }
-      };
-      req.app.db.models.Admin.findByIdAndUpdate(user.roles.admin, fieldsToSet, function(err, admin) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
+  workflow.on('validate', function() {
+    if (!req.user.isMemberOf('root')) {
+      workflow.outcome.errors.push('You may not change the group memberships of users.');
+      return workflow.emit('response');
+    }
 
-        workflow.emit('patchAccount', user);
-      });
+    if (!req.body.groups) {
+      workflow.outcome.errfor.groups = 'required';
+      return workflow.emit('response');
     }
-    else {
-      workflow.emit('patchAccount', user);
-    }
+
+    workflow.emit('patchUser');
   });
 
-  workflow.on('patchAccount', function(user) {
-    if (user.roles.account) {
-      var fieldsToSet = {
-        user: {
-          id: req.params.id,
-          name: user.username
-        }
-      };
-      req.app.db.models.Account.findByIdAndUpdate(user.roles.account, fieldsToSet, function(err, account) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
+  workflow.on('patchUser', function() {
+    var fieldsToSet = {
+      groups: req.body.groups
+    };
 
-        workflow.emit('populateRoles', user);
-      });
-    }
-    else {
-      workflow.emit('populateRoles', user);
-    }
-  });
-
-  workflow.on('populateRoles', function(user) {
-    user.populate('roles.admin roles.account', 'name.full', function(err, populatedUser) {
+    req.app.db.models.User.findByIdAndUpdate(req.params.id, fieldsToSet, function(err, admin) {
       if (err) {
         return workflow.emit('exception', err);
       }
 
-      workflow.outcome.user = populatedUser;
-      workflow.emit('response');
+      admin.populate('groups', 'name', function(err, admin) {
+        if (err) {
+          return workflow.emit('exception', err);
+        }
+
+        workflow.outcome.admin = admin;
+        workflow.emit('response');
+      });
     });
   });
 
   workflow.emit('validate');
 };
-
-exports.password = function(req, res, next){
+exports.password = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
@@ -300,332 +310,11 @@ exports.password = function(req, res, next){
   workflow.emit('validate');
 };
 
-exports.linkAdmin = function(req, res, next){
+exports.delete = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
   workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
-      workflow.outcome.errors.push('You may not link users to admins.');
-      return workflow.emit('response');
-    }
-
-    if (!req.body.newAdminId) {
-      workflow.outcome.errfor.newAdminId = 'required';
-      return workflow.emit('response');
-    }
-
-    workflow.emit('verifyAdmin');
-  });
-
-  workflow.on('verifyAdmin', function(callback) {
-    req.app.db.models.Admin.findById(req.body.newAdminId).exec(function(err, admin) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (!admin) {
-        workflow.outcome.errors.push('Admin not found.');
-        return workflow.emit('response');
-      }
-
-      if (admin.user.id && admin.user.id !== req.params.id) {
-        workflow.outcome.errors.push('Admin is already linked to a different user.');
-        return workflow.emit('response');
-      }
-
-      workflow.admin = admin;
-      workflow.emit('duplicateLinkCheck');
-    });
-  });
-
-  workflow.on('duplicateLinkCheck', function(callback) {
-    req.app.db.models.User.findOne({ 'roles.admin': req.body.newAdminId, _id: {$ne: req.params.id} }).exec(function(err, user) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (user) {
-        workflow.outcome.errors.push('Another user is already linked to that admin.');
-        return workflow.emit('response');
-      }
-
-      workflow.emit('patchUser');
-    });
-  });
-
-  workflow.on('patchUser', function(callback) {
-    req.app.db.models.User.findById(req.params.id).exec(function(err, user) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      user.roles.admin = req.body.newAdminId;
-      user.save(function(err, user) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
-
-        user.populate('roles.admin roles.account', 'name.full', function(err, user) {
-          if (err) {
-            return workflow.emit('exception', err);
-          }
-
-          workflow.outcome.user = user;
-          workflow.emit('patchAdmin');
-        });
-      });
-    });
-  });
-
-  workflow.on('patchAdmin', function() {
-    workflow.admin.user = { id: req.params.id, name: workflow.outcome.user.username };
-    workflow.admin.save(function(err, admin) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      workflow.emit('response');
-    });
-  });
-
-  workflow.emit('validate');
-};
-
-exports.unlinkAdmin = function(req, res, next){
-  var workflow = req.app.utility.workflow(req, res);
-
-  workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
-      workflow.outcome.errors.push('You may not unlink users from admins.');
-      return workflow.emit('response');
-    }
-
-    if (req.user._id === req.params.id) {
-      workflow.outcome.errors.push('You may not unlink yourself from admin.');
-      return workflow.emit('response');
-    }
-
-    workflow.emit('patchUser');
-  });
-
-  workflow.on('patchUser', function() {
-    req.app.db.models.User.findById(req.params.id).exec(function(err, user) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (!user) {
-        workflow.outcome.errors.push('User was not found.');
-        return workflow.emit('response');
-      }
-
-      var adminId = user.roles.admin;
-      user.roles.admin = null;
-      user.save(function(err, user) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
-
-        user.populate('roles.admin roles.account', 'name.full', function(err, user) {
-          if (err) {
-            return workflow.emit('exception', err);
-          }
-
-          workflow.outcome.user = user;
-          workflow.emit('patchAdmin', adminId);
-        });
-      });
-    });
-  });
-
-  workflow.on('patchAdmin', function(id) {
-    req.app.db.models.Admin.findById(id).exec(function(err, admin) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (!admin) {
-        workflow.outcome.errors.push('Admin was not found.');
-        return workflow.emit('response');
-      }
-
-      admin.user = undefined;
-      admin.save(function(err, admin) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
-
-        workflow.emit('response');
-      });
-    });
-  });
-
-  workflow.emit('validate');
-};
-
-exports.linkAccount = function(req, res, next){
-  var workflow = req.app.utility.workflow(req, res);
-
-  workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
-      workflow.outcome.errors.push('You may not link users to accounts.');
-      return workflow.emit('response');
-    }
-
-    if (!req.body.newAccountId) {
-      workflow.outcome.errfor.newAccountId = 'required';
-      return workflow.emit('response');
-    }
-
-    workflow.emit('verifyAccount');
-  });
-
-  workflow.on('verifyAccount', function(callback) {
-    req.app.db.models.Account.findById(req.body.newAccountId).exec(function(err, account) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (!account) {
-        workflow.outcome.errors.push('Account not found.');
-        return workflow.emit('response');
-      }
-
-      if (account.user.id && account.user.id !== req.params.id) {
-        workflow.outcome.errors.push('Account is already linked to a different user.');
-        return workflow.emit('response');
-      }
-
-      workflow.account = account;
-      workflow.emit('duplicateLinkCheck');
-    });
-  });
-
-  workflow.on('duplicateLinkCheck', function(callback) {
-    req.app.db.models.User.findOne({ 'roles.account': req.body.newAccountId, _id: {$ne: req.params.id} }).exec(function(err, user) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (user) {
-        workflow.outcome.errors.push('Another user is already linked to that account.');
-        return workflow.emit('response');
-      }
-
-      workflow.emit('patchUser');
-    });
-  });
-
-  workflow.on('patchUser', function(callback) {
-    req.app.db.models.User.findById(req.params.id).exec(function(err, user) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      user.roles.account = req.body.newAccountId;
-      user.save(function(err, user) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
-
-        user.populate('roles.admin roles.account', 'name.full', function(err, user) {
-          if (err) {
-            return workflow.emit('exception', err);
-          }
-
-          workflow.outcome.user = user;
-          workflow.emit('patchAccount');
-        });
-      });
-    });
-  });
-
-  workflow.on('patchAccount', function() {
-    workflow.account.user = { id: req.params.id, name: workflow.outcome.user.username };
-    workflow.account.save(function(err, account) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      workflow.emit('response');
-    });
-  });
-
-  workflow.emit('validate');
-};
-
-exports.unlinkAccount = function(req, res, next){
-  var workflow = req.app.utility.workflow(req, res);
-
-  workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
-      workflow.outcome.errors.push('You may not unlink users from accounts.');
-      return workflow.emit('response');
-    }
-
-    workflow.emit('patchUser');
-  });
-
-  workflow.on('patchUser', function() {
-    req.app.db.models.User.findById(req.params.id).exec(function(err, user) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (!user) {
-        workflow.outcome.errors.push('User was not found.');
-        return workflow.emit('response');
-      }
-
-      var accountId = user.roles.account;
-      user.roles.account = null;
-      user.save(function(err, user) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
-
-        user.populate('roles.admin roles.account', 'name.full', function(err, user) {
-          if (err) {
-            return workflow.emit('exception', err);
-          }
-
-          workflow.outcome.user = user;
-          workflow.emit('patchAccount', accountId);
-        });
-      });
-    });
-  });
-
-  workflow.on('patchAccount', function(id) {
-    req.app.db.models.Account.findById(id).exec(function(err, account) {
-      if (err) {
-        return workflow.emit('exception', err);
-      }
-
-      if (!account) {
-        workflow.outcome.errors.push('Account was not found.');
-        return workflow.emit('response');
-      }
-
-      account.user = undefined;
-      account.save(function(err, account) {
-        if (err) {
-          return workflow.emit('exception', err);
-        }
-
-        workflow.emit('response');
-      });
-    });
-  });
-
-  workflow.emit('validate');
-};
-
-exports.delete = function(req, res, next){
-  var workflow = req.app.utility.workflow(req, res);
-
-  workflow.on('validate', function() {
-    if (!req.user.roles.admin.isMemberOf('root')) {
+    if (!req.user.isMemberOf('root')) {
       workflow.outcome.errors.push('You may not delete users.');
       return workflow.emit('response');
     }
@@ -638,8 +327,8 @@ exports.delete = function(req, res, next){
     workflow.emit('deleteUser');
   });
 
-  workflow.on('deleteUser', function(err) {
-    req.app.db.models.User.findByIdAndRemove(req.params.id, function(err, user) {
+  workflow.on('deleteUser', function() {
+    req.app.db.models.User.findByIdAndRemove(req.params.id, function(err) {
       if (err) {
         return workflow.emit('exception', err);
       }

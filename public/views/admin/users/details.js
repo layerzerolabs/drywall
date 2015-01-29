@@ -1,4 +1,4 @@
-/* global app:true */
+/* global app:true, Backbone, _, $, confirm, location, unescape, document, alert */
 
 (function() {
   'use strict';
@@ -47,27 +47,18 @@
     }
   });
 
-  app.Roles = Backbone.Model.extend({
+  app.Groups = Backbone.Model.extend({
     idAttribute: '_id',
     defaults: {
       success: false,
       errors: [],
       errfor: {},
-      roles: {},
-      newAccountId: '',
-      newAdminId: ''
+      groups: [],
+      newMembership: ''
     },
     url: function() {
-      return '/admin/users/'+ app.mainView.model.id +'/';
+      return '/admin/users/'+ app.mainView.model.id +'/groups/';
     },
-    parse: function(response) {
-      if (response.user) {
-        app.mainView.model.set(response.user);
-        delete response.user;
-      }
-
-      return response;
-    }
   });
 
   app.Password = Backbone.Model.extend({
@@ -144,19 +135,16 @@
     }
   });
 
-  app.RolesView = Backbone.View.extend({
-    el: '#roles',
-    template: _.template( $('#tmpl-roles').html() ),
+  app.GroupsView = Backbone.View.extend({
+    el: '#groups',
+    template: _.template( $('#tmpl-groups').html() ),
     events: {
-      'click .btn-admin-open': 'adminOpen',
-      'click .btn-admin-link': 'adminLink',
-      'click .btn-admin-unlink': 'adminUnlink',
-      'click .btn-account-open': 'accountOpen',
-      'click .btn-account-link': 'accountLink',
-      'click .btn-account-unlink': 'accountUnlink'
+      'click .btn-add': 'add',
+      'click .btn-delete': 'delete',
+      'click .btn-save': 'saveGroups'
     },
     initialize: function() {
-      this.model = new app.Roles();
+      this.model = new app.Groups();
       this.syncUp();
       this.listenTo(app.mainView.model, 'change', this.syncUp);
       this.listenTo(this.model, 'sync', this.render);
@@ -165,7 +153,7 @@
     syncUp: function() {
       this.model.set({
         _id: app.mainView.model.id,
-        roles: app.mainView.model.get('roles')
+        groups: app.mainView.model.get('groups')
       });
     },
     render: function() {
@@ -177,55 +165,46 @@
         }
       }
     },
-    adminOpen: function() {
-      location.href = '/admin/administrators/'+ this.model.get('roles').admin._id +'/';
-    },
-    adminLink: function() {
-      this.model.save({
-        newAdminId: $('[name="newAdminId"]').val()
-      },{
-        url: this.model.url() +'role-admin/'
-      });
-    },
-    adminUnlink: function() {
-      if (confirm('Are you sure?')) {
-        this.model.destroy({
-          url: this.model.url() +'role-admin/',
-          success: function(model, response) {
-            if (response.user) {
-              app.mainView.model.set(response.user);
-              delete response.user;
-            }
-
-            app.rolesView.model.set(response);
+    add: function() {
+      var newMembership = this.$el.find('[name="newMembership"]').val();
+      var newMembershipName = this.$el.find('[name="newMembership"] option:selected').text();
+      if (!newMembership) {
+        alert('Please select a group.');
+        return;
+      }
+      else {
+        var alreadyAdded = false;
+        _.each(this.model.get('groups'), function(group) {
+          if (newMembership === group._id) {
+            alreadyAdded = true;
           }
         });
-      }
-    },
-    accountOpen: function() {
-      location.href = '/admin/accounts/'+ this.model.get('roles').account._id +'/';
-    },
-    accountLink: function() {
-      this.model.save({
-        newAccountId: $('[name="newAccountId"]').val()
-      },{
-        url: this.model.url() +'role-account/'
-      });
-    },
-    accountUnlink: function() {
-      if (confirm('Are you sure?')) {
-        this.model.destroy({
-          url: this.model.url() +'role-account/',
-          success: function(model, response) {
-            if (response.user) {
-              app.mainView.model.set(response.user);
-              delete response.user;
-            }
 
-            app.rolesView.model.set(response);
-          }
-        });
+        if (alreadyAdded) {
+          alert('That group already exists.');
+          return;
+        }
       }
+        
+      this.model.get('groups').push({ _id: newMembership, name: newMembershipName });
+
+      var sorted = this.model.get('groups');
+      sorted.sort(function(a, b) {
+        return a.name.toLowerCase() > b.name.toLowerCase();
+      });
+      this.model.set('groups', sorted);
+
+      this.render();
+    },
+    delete: function(event) {
+      if (confirm('Are you sure?')) {
+        var idx = this.$el.find('.btn-delete').index(event.currentTarget);
+        this.model.get('groups').splice(idx, 1);
+        this.render();
+      }
+    },
+    saveGroups: function() {
+      this.model.save();
     }
   });
 
@@ -295,8 +274,8 @@
 
       app.headerView = new app.HeaderView();
       app.identityView = new app.IdentityView();
+      app.groupsView = new app.GroupsView();
       app.passwordView = new app.PasswordView();
-      app.rolesView = new app.RolesView();
       app.deleteView = new app.DeleteView();
     }
   });
