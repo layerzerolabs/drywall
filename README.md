@@ -64,9 +64,7 @@ use drywall; //your mongo db name
 
 ```js
 db.admingroups.insert({ _id: 'root', name: 'Root' });
-db.admins.insert({ name: {first: 'Root', last: 'Admin', full: 'Root Admin'}, groups: ['root'] });
-db.users.save({ username: 'root', isActive: 'yes', email: 'your@email.addy', roles: ['admin'], groups: ['root' });
-var rootUser = db.users.findOne();
+db.users.save({ username: 'root', isActive: 'yes', email: 'your@email.addy', roles: ['admin'], groups: ['root'] });
 ```
 
 Now just use the reset password feature to set a password.
@@ -96,9 +94,8 @@ Features
  - Login system with forgot password and reset password.
  - Signup and Login with Facebook, Twitter, GitHub, Google and Tumblr.
  - Optional email verification during signup flow.
- - User system with separate account and admin roles.
+ - Simplified user system.
  - Admin groups with shared permission settings.
- - Administrator level permissions that override group permissions.
  - Global admin quick search component.
 
 Contributing
