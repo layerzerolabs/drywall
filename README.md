@@ -1,12 +1,18 @@
 Differences from the standard Drywall
 =====================================
-
+## User Entity
 This fork of Drywall is simpler in that it does not have separate entities for User, Account and Admin. Instead it just has one User entity.
 
 In standard Drywall, for a user to be a member of a permissioned group, it has to have an Admin entity. The Admin entity is related to the group. In this version, the groups sit on the User entity directly.
 
 The notion of Roles has not been entirely removed, however, I think that is the next step. Groups provide one permissioning system; why have two?
 
+## Modularity
+I am playing with the idea of making Drywall an npm module which you would install and keep separate from your own code.
+
+There are reasons for and against this.
+
+To this end I have changed the name of app.js to "index.js" and it now exports the app object. 
 
 Drywall
 =============
