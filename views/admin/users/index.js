@@ -217,7 +217,9 @@ exports.update = function(req, res){
       workflow.emit('response');
     });
   });
+  workflow.emit('validate');
 };
+
 exports.groups = function(req, res){
   var workflow = req.app.utility.workflow(req, res);
 
