@@ -16,7 +16,7 @@ To this end I have changed the name of app.js to "index.js" and it now exports t
 
 Also, the authentication functions that was previously hidden inside routes.js is now attached to the app so that the user has access to `app.ensureAuthenticated`. (Also `app.ensureAccount`, etc, which I will soon remove).
 
-Also, now, you do not have to put your views in the drywall views directory. You can set an additional view path in config.js. You can also of course statically serve whatever you like but make sure there are no naming clashes with drywall/public.
+Also, now, you do not have to put your views in the drywall views directory. You can set an additional view path in config.js. You can also of course statically serve whatever you like but make sure there are no naming clashes with drywall/public. If you want to extend the drywall layouts in your templates, you just need to use the right path, e.g. `extends ../../drywall/layouts/default`
 
 Drywall
 =============
