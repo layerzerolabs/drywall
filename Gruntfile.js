@@ -1,4 +1,6 @@
-var path = require('path');
+'use strict';
+
+var config = require('./config.js');
 
 module.exports = function(grunt) {
   grunt.initConfig({
@@ -55,7 +57,7 @@ module.exports = function(grunt) {
     },
     nodemon: {
       dev: {
-        script: 'app.js',
+        script: config.scriptToRestartOnFileChange,
         options: {
           ignore: [
             'node_modules/**',

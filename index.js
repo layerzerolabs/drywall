@@ -96,6 +96,9 @@ var apply404CatchAll = function() {
   app.all('*', require('./views/http/index').http404);
 };
 
+// export the app for the user to extend
+module.exports.app = app;
+
 // export a start method so that the user can do their own setup and then start the app
 module.exports.start = function() {
   // user will have set up their own routes by this point so apply the catchall now
