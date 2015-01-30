@@ -39,6 +39,8 @@ Requirements
 
 You need [Node.js](http://nodejs.org/download/) and [MongoDB](http://www.mongodb.org/downloads) installed and running.
 
+To install Mongo: http://docs.mongodb.org/manual/installation/
+
 We use [Grunt](http://gruntjs.com/) as our task runner. Get the CLI (command line interface).
 
 ```bash
