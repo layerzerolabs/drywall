@@ -92,7 +92,13 @@ app.utility.sendmail = require('./util/sendmail');
 app.utility.slugify = require('./util/slugify');
 app.utility.workflow = require('./util/workflow');
 
-//listen up
-app.server.listen(app.config.port, function(){
-  //and... we're live
-});
+var apply404CatchAll = function() {
+  app.all('*', require('./views/http/index').http404);
+};
+
+// export a start method so that the user can do their own setup and then start the app
+module.exports.start = function() {
+  // user will have set up their own routes by this point so apply the catchall now
+  apply404CatchAll();
+  app.server.listen(app.config.port);
+};
