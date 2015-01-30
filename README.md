@@ -14,6 +14,10 @@ There are reasons for and against this.
 
 To this end I have changed the name of app.js to "index.js" and it now exports the app object. It also exports a `start` method which you should call after you have done all your own app setup. The start method applies a 404 catch-all so that any requests not covered by standard routes or by your own routes will be served with a 404 page. It then runs app.listen() to start the app.
 
+Also, the authentication functions that was previously hidden inside routes.js is now attached to the app so that the user has access to `app.ensureAuthenticated`. (Also `app.ensureAccount`, etc, which I will soon remove).
+
+Also, now, you do not have to put your views in the drywall views directory. You can set an additional view path in config.js. You can also of course statically serve whatever you like but make sure there are no naming clashes with drywall/public.
+
 Drywall
 =============
 
