@@ -72,7 +72,7 @@ use drywall; //your mongo db name
 
 ```js
 db.admingroups.insert({ _id: 'root', name: 'Root' });
-db.users.save({ username: 'root', isActive: 'yes', email: 'your@email.addy', roles: ['admin'], groups: ['root'] });
+db.users.save({ username: 'root', isActive: 'yes', email: 'your@email.addy', roles: ['admin'], groups: ['root'], search: ['root', 'your@email.addy'] });
 ```
 
 Now just use the reset password feature to set a password.
