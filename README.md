@@ -12,7 +12,7 @@ I am playing with the idea of making Drywall an npm module which you would insta
 
 There are reasons for and against this.
 
-To this end I have changed the name of app.js to "index.js" and it now exports the app object. 
+To this end I have changed the name of app.js to "index.js" and it now exports the app object. It also exports a `start` method which you should call after you have done all your own app setup. The start method applies a 404 catch-all so that any requests not covered by standard routes or by your own routes will be served with a 404 page. It then runs app.listen() to start the app.
 
 Drywall
 =============
@@ -44,7 +44,7 @@ To install Mongo: http://docs.mongodb.org/manual/installation/
 We use [Grunt](http://gruntjs.com/) as our task runner. Get the CLI (command line interface).
 
 ```bash
-$ npm install grunt-cli -g
+$ sudo npm install grunt-cli -g
 ```
 
 We use [`bcrypt`](https://github.com/ncb000gt/node.bcrypt.js) for hashing secrets. If you have issues during installation related to `bcrypt` then [refer to this wiki page](https://github.com/jedireza/drywall/wiki/bcrypt-Installation-Trouble).
