@@ -57,7 +57,7 @@ module.exports = function(grunt) {
     },
     nodemon: {
       dev: {
-        script: config.scriptToRestartOnFileChange,
+        script: config.scriptToStartServer,
         options: {
           ignore: [
             'node_modules/**',

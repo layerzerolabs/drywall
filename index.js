@@ -40,7 +40,10 @@ require('./models')(app, mongoose);
 //settings
 app.disable('x-powered-by');
 app.set('port', config.port);
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', [
+  path.join(__dirname, 'views'),
+  config.viewsDirectory
+]);
 app.set('view engine', 'jade');
 
 //middleware
@@ -80,6 +83,34 @@ app.locals.cacheBreaker = 'br34k-01';
 //setup passport
 require('./passport')(app, passport);
 
+// Set up these authenticaion functions before loading routes, as they depend on them
+app.ensureAuthenticated = function(req, res, next) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  res.set('X-Auth-Required', 'true');
+  req.session.returnUrl = req.originalUrl;
+  res.redirect('/login/');
+};
+
+app.ensureAdmin = function(req, res, next) {
+  if (req.user.canPlayRoleOf('admin')) {
+    return next();
+  }
+  res.redirect('/');
+};
+
+app.ensureAccount = function(req, res, next) {
+  if (req.user.canPlayRoleOf('account')) {
+    if (req.app.config.requireAccountVerification) {
+      if (req.user.isVerified !== 'yes' && !/^\/account\/verification\//.test(req.url)) {
+        return res.redirect('/account/verification/');
+      }
+    }
+    return next();
+  }
+  res.redirect('/');
+};
 //setup routes
 require('./routes')(app, passport);
 
@@ -95,6 +126,7 @@ app.utility.workflow = require('./util/workflow');
 var apply404CatchAll = function() {
   app.all('*', require('./views/http/index').http404);
 };
+
 
 // export the app for the user to extend
 module.exports.app = app;

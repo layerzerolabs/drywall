@@ -1,33 +1,5 @@
 'use strict';
 
-function ensureAuthenticated(req, res, next) {
-  if (req.isAuthenticated()) {
-    return next();
-  }
-  res.set('X-Auth-Required', 'true');
-  req.session.returnUrl = req.originalUrl;
-  res.redirect('/login/');
-}
-
-function ensureAdmin(req, res, next) {
-  if (req.user.canPlayRoleOf('admin')) {
-    return next();
-  }
-  res.redirect('/');
-}
-
-function ensureAccount(req, res, next) {
-  if (req.user.canPlayRoleOf('account')) {
-    if (req.app.config.requireAccountVerification) {
-      if (req.user.isVerified !== 'yes' && !/^\/account\/verification\//.test(req.url)) {
-        return res.redirect('/account/verification/');
-      }
-    }
-    return next();
-  }
-  res.redirect('/');
-}
-
 exports = module.exports = function(app, passport) {
   //front end
   app.get('/', require('./views/index').init);
@@ -61,7 +33,7 @@ exports = module.exports = function(app, passport) {
   app.get('/login/reset/:email/:token/', require('./views/login/reset/index').init);
   app.put('/login/reset/:email/:token/', require('./views/login/reset/index').set);
   app.get('/logout/', require('./views/logout/index').init);
-
+  
   //social login
   app.get('/login/twitter/', passport.authenticate('twitter', { callbackURL: '/login/twitter/callback/' }));
   app.get('/login/twitter/callback/', require('./views/login/index').loginTwitter);
@@ -75,8 +47,8 @@ exports = module.exports = function(app, passport) {
   app.get('/login/tumblr/callback/', require('./views/login/index').loginTumblr);
 
   //admin
-  app.all('/admin*', ensureAuthenticated);
-  app.all('/admin*', ensureAdmin);
+  app.all('/admin*', app.ensureAuthenticated);
+  app.all('/admin*', app.ensureAdmin);
   app.get('/admin/', require('./views/admin/index').init);
 
   //admin > users
@@ -115,8 +87,8 @@ exports = module.exports = function(app, passport) {
   app.get('/admin/search/', require('./views/admin/search/index').find);
 
   //account
-  app.all('/account*', ensureAuthenticated);
-  app.all('/account*', ensureAccount);
+  app.all('/account*', app.ensureAuthenticated);
+  app.all('/account*', app.ensureAccount);
   app.get('/account/', require('./views/account/index').init);
 
   //account > verification
