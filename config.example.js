@@ -1,7 +1,10 @@
+/* jshint node: true */
+
 'use strict';
 
 exports.scriptToStartServer = '';
-exports.viewsDirectory = '';
+exports.serverSideViewsDirectory = '';
+exports.backboneViewsDirectory = '';
 exports.port = process.env.PORT || 3000;
 exports.mongodb = {
   uri: process.env.MONGOLAB_URI || process.env.MONGOHQ_URL || 'mongodb://localhost:27017/drywall'

@@ -74,7 +74,7 @@ module.exports = function(grunt) {
          files: [
           'public/layouts/**/*.js', '!public/layouts/**/*.min.js',
           'public/views/**/*.js', '!public/views/**/*.min.js',
-          config.publicViewsDirectory + '/**/*.js', '!' + config.publicViewsDirectory + '/**/*.min.js'
+          config.backboneViewsDirectory + '/**/*.js', '!' + config.backboneViewsDirectory + '/**/*.min.js'
          ],
          tasks: ['newer:uglify', 'newer:jshint:client']
       },
@@ -145,9 +145,9 @@ module.exports = function(grunt) {
           ext: '.min.js'
         }, {
           expand: true,
-          cwd: config.publicViewsDirectory,
+          cwd: config.backboneViewsDirectory,
           src: ['**/*.js', '!**/*.min.js'],
-          dest: config.publicViewsDirectory,
+          dest: config.backboneViewsDirectory,
           ext: '.min.js'
         }]
       }

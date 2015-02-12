@@ -1,3 +1,5 @@
+/* jshint node: true */
+
 'use strict';
 
 //dependencies
@@ -42,7 +44,7 @@ app.disable('x-powered-by');
 app.set('port', config.port);
 app.set('views', [
   path.join(__dirname, 'views'),
-  config.viewsDirectory
+  config.serverSideViewsDirectory
 ]);
 app.set('view engine', 'jade');
 
