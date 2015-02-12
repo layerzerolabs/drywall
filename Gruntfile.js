@@ -1,3 +1,5 @@
+/* jshint node: true */
+
 'use strict';
 
 var config = require('./config.js');
@@ -71,7 +73,8 @@ module.exports = function(grunt) {
       clientJS: {
          files: [
           'public/layouts/**/*.js', '!public/layouts/**/*.min.js',
-          'public/views/**/*.js', '!public/views/**/*.min.js'
+          'public/views/**/*.js', '!public/views/**/*.min.js',
+          config.publicViewsDirectory + '/**/*.js', '!' + config.publicViewsDirectory + '/**/*.min.js'
          ],
          tasks: ['newer:uglify', 'newer:jshint:client']
       },
@@ -121,6 +124,7 @@ module.exports = function(grunt) {
             'public/vendor/bootstrap/js/scrollspy.js',
             'public/vendor/bootstrap/js/tab.js',
             'public/vendor/bootstrap/js/transition.js',
+            'public/vendor/bootstrap/js/bootstrap-datepicker.js',
             'public/vendor/momentjs/moment.js',
             'public/layouts/core.js'
           ],
@@ -138,6 +142,12 @@ module.exports = function(grunt) {
           cwd: 'public/views/',
           src: ['**/*.js', '!**/*.min.js'],
           dest: 'public/views/',
+          ext: '.min.js'
+        }, {
+          expand: true,
+          cwd: config.publicViewsDirectory,
+          src: ['**/*.js', '!**/*.min.js'],
+          dest: config.publicViewsDirectory,
           ext: '.min.js'
         }]
       }
