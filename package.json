@@ -47,7 +47,7 @@
     "grunt-contrib-watch": "^0.6.1",
     "grunt-newer": "^1.1.0",
     "grunt-nodemon": "^0.4.0",
-    "html5shiv": "https://github.com/aFarakas/html5shiv.git",
+    "html5shiv": "https://github.com/aFarkas/html5shiv.git",
     "jquery": "^2.1.3",
     "jquery.cookie": "^1.4.1",
     "moment": "^2.9.0",
